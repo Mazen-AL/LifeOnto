@@ -526,8 +526,8 @@ public class Testgui {
               {
           		DefaultTableModel defaultModel = (DefaultTableModel) tableAssc.getModel();
           		defaultModel.getDataVector().removeAllElements(); 
-			    Object [] row = new Object [3];        				   
-			    defaultModel.addRow(row);
+			//    Object [] row = new Object [3];        				   
+			//    defaultModel.addRow(row);
 			    
   			    int rowNumber = tableConcepts.getRowCount();
   			    Map<String, Integer> allconcepts = new HashMap<String, Integer>();
@@ -544,7 +544,6 @@ public class Testgui {
 				    	    	if (RelInstances != null && !RelInstances.isEmpty())
 				    	    	{
 				              	  DefaultTableModel defaultModel1 = (DefaultTableModel) tableAssc.getModel();
-				              	  defaultModel1.getDataVector().removeAllElements(); 
 			                      int count = 0 ; 
 			           			  for (String rel : RelInstances)
 			           			  {

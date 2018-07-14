@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -194,6 +196,7 @@ public class SyntaticPattern {
 		ArrayList<String> RelInstances =  new ArrayList<String>();
 		for (String patt : patts)
 		{		
+			System.out.println(patt);
 			patt = patt.toLowerCase() ;
 			String[] tokens = patt.split("!");
 			patt = tokens[0];
@@ -205,16 +208,96 @@ public class SyntaticPattern {
 			String middleP = toks[1].trim() ;
 			String endP = toks[2].trim() ;
 			
-			if(!startP.isEmpty())
+			if( !startP.isEmpty() && middleP.isEmpty() && endP.isEmpty())
 			{
-				String sections[] = orgSentence.split(startP); 
-				if ((sections[0].contains(cpt1) && sections[1].contains(cpt2))||(sections[0].contains(cpt1) && sections[0].contains(cpt2)))
+
+				Pattern pattern = Pattern.compile(startP);
+				Matcher matcher = pattern.matcher(orgSentence);
+				
+				if (matcher.find())
 				{
-					RelInstances.add("<" + cpt1 +","+ startP + "," + cpt2 + ">"); 
+					String sections[] = orgSentence.split(startP); 
+					
+					if (( sections[0].contains(cpt1) && sections[0].contains(cpt2)))
+					{
+						RelInstances.add("<" + cpt1 +","+ tokens[2] + "," + cpt2 + ">"); 
+					}
 				}
-				else if (sections[0].contains(cpt2) && sections[1].contains(cpt1))
+			}
+			else if( startP.isEmpty() && !middleP.isEmpty() && endP.isEmpty())
+				
 				{
-					RelInstances.add("<" + cpt1 +","+ startP + "," + cpt2 + ">");
+					Pattern pattern = Pattern.compile(middleP);
+					Matcher matcher = pattern.matcher(orgSentence);
+					
+					if (matcher.find())
+					{
+						String sections[] = orgSentence.split(middleP); 
+						
+						if (sections.length >= 2 && sections[0].contains(cpt1) && sections[1].contains(cpt2))
+						{
+							RelInstances.add("<" + cpt1 +","+ tokens[2] + "," + cpt2 + ">"); 
+						}
+						else if (sections.length >= 2 && sections[0].contains(cpt2) && sections[1].contains(cpt1))
+						{
+							RelInstances.add("<" + cpt2 +","+ tokens[2] + "," + cpt1 + ">");
+						}
+					}
+				}
+			else if( startP.isEmpty() && middleP.isEmpty() && !endP.isEmpty())
+			{
+				Pattern pattern = Pattern.compile(endP);
+				Matcher matcher = pattern.matcher(orgSentence);
+				
+				if (matcher.find())
+				{
+					String sections[] = orgSentence.split(endP); 
+					if ((sections[0].contains(cpt1) && sections[0].contains(cpt2)))
+					{
+						RelInstances.add("<" + cpt1 +","+ tokens[2] + "," + cpt2 + ">"); 
+					}
+				}
+			}
+			else if( !startP.isEmpty() && !middleP.isEmpty() && endP.isEmpty())
+			{
+				Pattern pattern = Pattern.compile(startP +".*"+ middleP);
+				Matcher matcher = pattern.matcher(orgSentence);
+				
+				if (matcher.find())
+				{
+					String sections[] = orgSentence.split(startP +".*"+ middleP);
+					String firstSection = orgSentence.replaceAll(sections[1], ""); 
+					
+					if ((firstSection.contains(cpt1) && sections[1].contains(cpt2)))
+					{
+						RelInstances.add("<" + cpt1 +","+ tokens[2] + "," + cpt2 + ">"); 
+					}
+					else if ((firstSection.contains(cpt2) && sections[1].contains(cpt1)))
+					{
+						RelInstances.add("<" + cpt2 +","+ tokens[2] + "," + cpt1 + ">"); 
+					}
+						
+				}
+			}
+			else if( startP.isEmpty() && !middleP.isEmpty() && !endP.isEmpty())
+			{
+				Pattern pattern = Pattern.compile(middleP +".*"+ endP);
+				Matcher matcher = pattern.matcher(orgSentence);
+				
+				if (matcher.find())
+				{
+					String sections[] = orgSentence.split(middleP +".*"+ endP);
+					String secondSection = matcher.group() ; //orgSentence.replaceAll(sections[0], ""); matcher. 
+					
+					if ((sections[0].contains(cpt1) && secondSection.contains(cpt2) ))
+					{
+						RelInstances.add("<" + cpt1 +","+ tokens[2] + "," + cpt2 + ">"); 
+					}
+					else if ((sections[0].contains(cpt2) && secondSection.contains(cpt1) ))
+					{
+						RelInstances.add("<" + cpt2 +","+ tokens[2] + "," + cpt1 + ">"); 
+					}
+						
 				}
 			}
 	

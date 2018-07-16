@@ -305,16 +305,22 @@ public class Testgui {
 					            			  defaultModel1.getDataVector().removeAllElements();    
 					            			  		            			  
 					            			  Map<String, Integer> mentions = null ; 
-				            				  Map<String, String> concepts = null ;
+				            				  Map<String, String> concepts = new HashMap<String, String>(); ;
 				            				  if (chckbxLOD.isSelected())
 				            				  {
 						            			  String text  = removestopwords.removestopwordfromsen(Sentence.getText()) ;
 						            			  mentions = NGramAnalyzer.entities(Integer.parseInt(ngramMin.getText()),Integer.parseInt(ngramMax.getText()), text) ;
-						            			  concepts = ontologyMapping.getAnnotation(mentions,SGT)  ;
+						            			  concepts.putAll(ontologyMapping.getAnnotation(mentions,SGT))  ;
 				            				  }
-				            				  else if (checkBoxUMLS.isSelected())
+				            				  if (checkBoxUMLS.isSelected())
 				            				  {
-				            					   concepts =  umlsMapping.getconcepts_SemanticGroup(Sentence.getText(), api) ;
+				            					  concepts.putAll(umlsMapping.getconcepts_SemanticGroup(Sentence.getText(), api,SGT)) ;
+				            				  }
+				            				  if (chckbxBio.isSelected())
+				            				  {
+				            					  String text  = removestopwords.removestopwordfromsen(Sentence.getText()) ;
+						            			  mentions = NGramAnalyzer.entities(Integer.parseInt(ngramMin.getText()),Integer.parseInt(ngramMax.getText()), text) ;
+						            			  concepts.putAll(bioportal.getConcepts(mentions,SGT)) ;
 				            				  }
 					            			  
 				            				 

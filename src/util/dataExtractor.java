@@ -22,7 +22,7 @@ public class dataExtractor {
 	
 	public static void main(String[] args) throws IOException {
 		
-		aneurysm(null) ;  
+		semanticGroupAbbr(null) ;  
 	}
 	
 	public static List<String> dataExtraction(String Keyword,String max) throws IOException {
@@ -286,6 +286,68 @@ public class dataExtractor {
 			ReadXMLFile.Serializeddir(Totaltitles, "C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\titlesaneurysm.dat");
 
 		}
-	
+		
+		
+		public static void semanticGroup(String[] args) throws IOException
+		{
+			// TODO Auto-generated method stub
 
+			List<String> Totaltitles = new ArrayList<String>();
+			Map<String, String> SemanticDir   = new HashMap<String, String>();
+
+			File filename  = new File("C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\TripleExtraction\\umls\\SemGroups_2013.txt") ;
+			List<String> lines = readfiles.readLinesbylines(filename.toURL()) ;
+			
+			for (String line:lines)
+			{
+				String tokens[] = line.split("\\|"); 
+				SemanticDir.put(tokens[2], tokens[1]); 
+				
+			}
+			
+			
+			ReadXMLFile.Serializeddiectionary(SemanticDir, "C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\SemanticGroupDir.dat");
+
+		}
+	
+		public static void semanticGroupAbbr(String[] args) throws IOException
+		{
+			// TODO Auto-generated method stub
+
+			List<String> Totaltitles = new ArrayList<String>();
+			Map<String, String> SemanticDir   = new HashMap<String, String>();
+			Map<String, String> SemanticDir1   = new HashMap<String, String>();
+			Map<String, String> SemanticDir2   = new HashMap<String, String>();
+
+			File filename  = new File("C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\TripleExtraction\\umls\\SemGroups_2013.txt") ;
+			List<String> lines = readfiles.readLinesbylines(filename.toURL()) ;
+			
+			for (String line:lines)
+			{
+				String tokens[] = line.split("\\|"); 
+				SemanticDir.put(tokens[2], tokens[1]); 
+				
+			}
+			
+			
+			File filename1  = new File("C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\TripleExtraction\\umls\\SemanticTypes_2013AA.txt") ;
+			List<String> lines1 = readfiles.readLinesbylines(filename1.toURL()) ;
+			for (String line:lines1)
+			{
+				String tokens[] = line.split("\\|"); 
+				SemanticDir1.put(tokens[1], tokens[0]); 
+				
+			}
+			
+			for (String gp:SemanticDir1.keySet())
+			{
+				SemanticDir.get(gp); 
+				SemanticDir2.put(SemanticDir1.get(gp), SemanticDir.get(gp));
+			}
+			
+			
+			
+			ReadXMLFile.Serializeddiectionary(SemanticDir2, "C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\SemanticGroupDirAbbr.dat");
+
+		}
 }

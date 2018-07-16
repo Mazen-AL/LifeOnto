@@ -45,6 +45,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
+import javax.swing.JList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -67,7 +68,38 @@ public class bioportal{
 
 	}
 	
-	
+	// consider the keyword as concept if the return search has class type 
+	public static Map<String, String>  getConcepts(Map<String, Integer> keywords,JList SGT) 
+    {
+		Map<String, String>  concepts = new HashMap<String, String>();
+		
+		for(String keyword: keywords.keySet())
+		{
+			if (isConcept(keyword) )
+			{
+				Map<String, Integer> semGp = getSemanticGroup(keyword);
+				String groups = "" ; 
+				for(String gr:semGp.keySet())
+				{
+					for(Object type:SGT.getSelectedValuesList())
+					{
+						if (type.toString().equals(gr) )
+						{
+							groups += gr + " " ; 
+						}
+								
+					}
+					 
+				}
+				
+				if( !groups.isEmpty())
+					concepts.put(keyword, groups);
+			}
+		}
+		
+		return concepts ;
+
+    }
 	
 	// consider the keyword as concept if the return search has class type 
 	public static boolean  isConcept(String keyword) 
@@ -181,6 +213,39 @@ public class bioportal{
 				
 		}
 		return SemanticTypes;	
+    }
+	
+	//get the Synonyms for the keyword
+	public static Map<String, Integer>  getSemanticGroup(String keyword) 
+    {
+		Map<String, Integer> SemanticTypes   = new HashMap<String, Integer>();
+		Map<String, Integer> SemanticGp   = new HashMap<String, Integer>();
+		 keyword  =  keyword.replace(" ", "%20");
+		JsonNode annotations;
+		annotations = jsonToNode(get(REST_URL + "/search?q=" +  keyword + "&require_exact_match=true"));
+		List<JsonNode>	 semanticTypes = (List<JsonNode>) annotations.get("collection").findValues("semanticType");
+		for(JsonNode st: semanticTypes)
+		{ 
+	          for (Iterator<JsonNode> iterator = st.elements(); iterator.hasNext(); ) 
+	          {
+	                String excludedPropertyName = iterator.next().asText();
+	                SemanticTypes.put(excludedPropertyName, 1) ;
+	          }
+				
+		}
+		
+		Map<String, String> semanticgroup = ReadXMLFile.Deserializeddiectionar("C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\SemanticGroupDir.dat") ;
+		for (String type:SemanticTypes.keySet())
+		{
+			String group = semanticgroup.get(type); 
+			
+			if (group != null && !group.isEmpty())
+			{
+				SemanticGp.put(group, 1) ;
+			}
+		}
+		
+		return SemanticGp;	
     }
 	
 	public static Map<String, Integer>  getSameas(String keyword,String URI) 

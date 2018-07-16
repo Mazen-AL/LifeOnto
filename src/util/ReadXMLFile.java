@@ -466,6 +466,46 @@ public class ReadXMLFile {
 		          i.printStackTrace();
 		     }
 		 }  
+		public static  void Serializeddiectionary(Map<String, String> dictionary,String fileout) throws IOException
+		 {
+
+		     try
+		     {
+		    	 // Create output stream.
+		         FileOutputStream fileOut =
+		         new FileOutputStream(fileout);
+			     // Create XML encoder.
+			     XMLEncoder xenc = new XMLEncoder(fileOut);
+		
+			     // Write object.
+			     xenc.writeObject(dictionary);
+			     xenc.close();
+		         fileOut.close();
+		         System.out.printf("Serialized data is saved in" + fileout);
+		     }catch(IOException i)
+		     {
+		          i.printStackTrace();
+		     }
+		 } 
+		
+		 public static  Map<String, String> Deserializeddiectionar(String fileout)
+		   {
+			       Map<String, String> dictionary ;
+				   FileInputStream fileIn;
+				try {
+					fileIn = new FileInputStream(fileout);
+				
+				   XMLDecoder decoder =  new XMLDecoder(fileIn);
+				   dictionary  = (Map<String, String>)decoder.readObject();
+				   decoder.close();
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					return null;
+				}
+			      return dictionary;
+		   }
+		
 		 public static  List<String> Deserializedirlis(String fileout)
 		   {
 			 	   List<String> dictionary ;

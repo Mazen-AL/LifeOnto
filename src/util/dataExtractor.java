@@ -1,7 +1,10 @@
 package util;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,7 +13,22 @@ import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.apache.commons.lang3.StringUtils;
+import org.json.simple.parser.ParseException;
 import org.w3c.dom.Document;
+
+import ONTO.BioPontologyfactory;
+
+import com.hp.hpl.jena.ontology.OntClass;
+import com.hp.hpl.jena.ontology.OntModel;
+import com.hp.hpl.jena.ontology.OntModelSpec;
+import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.Property;
+import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.ResourceFactory;
+import com.hp.hpl.jena.shared.JenaException;
+import com.hp.hpl.jena.util.FileManager;
 
 import util.ReadXMLFile;
 
@@ -20,9 +38,9 @@ public class dataExtractor {
 	// not used any more 
 	//*************************************************************
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, ParseException {
 		
-		semanticGroupAbbr(null) ;  
+		riskFactorExtractor("C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\data\\ica_ontology_updated_aug_27.owl") ;  
 	}
 	
 	public static List<String> dataExtraction(String Keyword,String max) throws IOException {
@@ -350,4 +368,164 @@ public class dataExtractor {
 			ReadXMLFile.Serializeddiectionary(SemanticDir2, "C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\SemanticGroupDirAbbr.dat");
 
 		}
+		
+		public static void semanticTypeDir(String[] args) throws IOException
+		{
+			// TODO Auto-generated method stub
+
+	
+			Map<String, String> SemanticDir1   = new HashMap<String, String>();
+			
+			File filename1  = new File("C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\TripleExtraction\\umls\\SemanticTypes_2013AA.txt") ;
+			List<String> lines1 = readfiles.readLinesbylines(filename1.toURL()) ;
+			for (String line:lines1)
+			{
+				String tokens[] = line.split("\\|"); 
+				SemanticDir1.put(tokens[1], tokens[2]); 
+				
+			}
+
+			ReadXMLFile.Serializeddiectionary(SemanticDir1, "C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\SemanticTypeDir.dat");
+
+		}
+		
+		
+		public static void NCBI_Goldstandard_Data(String[] args) throws IOException
+		{
+			// TODO Auto-generated method stub
+
+	
+			Map<String, List<String>> NCBIGold   = new HashMap<String, List<String>>();
+			
+			File filename1  = new File("C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\data\\NCBI\\NCBI_corpus_development.txt") ;
+			List<String> lines1 = readfiles.readLinesbylines(filename1.toURL()) ;
+			List<String> diseases = new ArrayList<String>();
+			
+			for (String line:lines1)
+			{
+				
+				String mentions[] = StringUtils.substringsBetween(line, "<category=\"Modifier\">", "</category>");
+				if (mentions != null)
+				{
+					for (String  mention:mentions)
+						diseases.add(mention.toLowerCase()) ;
+				}
+				
+				String mentions1[] = StringUtils.substringsBetween(line, "<category=\"SpecificDisease\">", "</category>");
+				if (mentions1 != null)
+				{
+					for (String  mention:mentions1)
+						diseases.add(mention.toLowerCase()) ;
+				}
+				
+				String mentions2[] = StringUtils.substringsBetween(line, "<category=\"DiseaseClass\">", "</category>");
+				if (mentions2 != null)
+				{
+					for (String  mention:mentions2)
+						diseases.add(mention.toLowerCase()) ;
+				}
+				
+				
+				NCBIGold.put(line, diseases);
+				
+				
+				
+			}
+			ReadXMLFile.Serialized(NCBIGold, "C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\data\\NCBI\\NCBI_corpus_development.dat");
+
+		}
+		
+		public static OntModel riskFactorExtractor(String ontoFile) throws IOException, ParseException
+		{
+			// TODO Auto-generated method stub
+			   String  rdfs = "http://www.w3.org/2000/01/rdf-schema#" ;
+			
+			// read risk factors entered by expert 
+			Map<String, String> RiskFactors   = new HashMap<String, String>();
+
+			String owlfile  = "C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\data\\icatest.owl" ;
+			File filename  = new File("C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\data\\expertRiskFactorstest.txt") ;
+			List<String> lines = readfiles.readLinesbylines(filename.toURL()) ;
+			
+			for (String line:lines)
+			{
+				String tokens[] = line.split("\\|"); 
+				if (tokens.length >1)
+				{
+					 //  riskfactor, Category 
+					RiskFactors.put(tokens[0].toLowerCase(), tokens[1]); 
+				}
+				
+			}
+			
+			Resource r = null ;
+			Resource superclass = null ;
+			OntModel OntoGraph = getOntologyModel(ontoFile) ;
+			
+			// create class for Aneurysm risk factor if not exist and assign a category 
+			
+			for (String rFactor:RiskFactors.keySet())
+			{
+				String rfCategoryURI = "http://www.mii.ucla.edu/~willhsu/ontologies/ica_ontology#" + RiskFactors.get(rFactor) ;
+				String rfURI = "http://www.mii.ucla.edu/~willhsu/ontologies/ica_ontology#" + rFactor.replace(" ", "_") ;
+				
+				if ( ( r= OntoGraph.getOntClass(rfURI) ) == null)
+				{
+					
+					OntClass rec = OntoGraph.createClass(rfURI);
+					final Property label = ResourceFactory.createProperty(rdfs + "label") ;
+					rec.addProperty(label, rFactor);
+					BioPontologyfactory.synonymToOnto(rFactor,rfURI,OntoGraph) ;
+					
+					if ((r= OntoGraph.getOntClass(rfCategoryURI)) != null) ;
+					   rec.addSuperClass(r);
+				}
+			}
+			
+			OntoGraph.write(System.out, "RDF/XML-ABBREV") ;
+			writeOntologyModel(OntoGraph,owlfile) ;
+			return OntoGraph ; 
+		}
+		
+		public static OntModel getOntologyModel(String ontoFile)
+		{   
+		    OntModel ontoModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM, null);
+		    try 
+		    {
+		        InputStream in = FileManager.get().open(ontoFile);
+		        try 
+		        {
+		            ontoModel.read(in, null);
+		        } 
+		        catch (Exception e) 
+		        {
+		            e.printStackTrace();
+		        }
+		    } 
+		    catch (JenaException je) 
+		    {
+		        System.err.println("ERROR" + je.getMessage());
+		        je.printStackTrace();
+		        System.exit(0);
+		    }
+		    return ontoModel;
+		}
+		
+		public static void writeOntologyModel(OntModel graphModel, String ontoFile) throws FileNotFoundException
+		{   
+		    
+	        // Creating a File object that represents the disk file. 
+	        PrintStream o = new PrintStream(new File(ontoFile)); 
+	  
+	        // Store current System.out before assigning a new value 
+	        PrintStream console = System.out; 
+	  
+	        // Assign o to output stream 
+	        System.setOut(o); 
+	         
+	        graphModel.write(System.out, "RDF/XML-ABBREV") ;
+	        // Use stored value for output stream 
+	        System.setOut(console); 
+		}
+		
 }

@@ -19,8 +19,11 @@ import javax.swing.JButton;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,6 +34,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JRadioButton;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JList;
 import javax.swing.AbstractListModel;
@@ -50,9 +54,13 @@ import javax.swing.JScrollPane;
 
 import org.json.simple.parser.ParseException;
 
+import com.hp.hpl.jena.ontology.OntModel;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+
 import HRCHY.SyntaticPattern;
 import NER.ontologyMapping;
 import NER.umlsMapping;
+import ONTO.BioPontologyfactory;
 import util.NGramAnalyzer;
 import util.ReadXMLFile;
 import util.bioportal;
@@ -92,6 +100,10 @@ public class Testgui {
 	private JButton btnSyn;
 	private JTable tableAssc;
 	private JButton btnAssc ;
+	private JCheckBox chckbxontoMode;
+	private JButton btnLearn;
+	private JButton btnSaveOnto;
+	private JTextArea textOnto;
 	
 	List<String> listofTitles_Abstract = null ; 
 	MetaMapApi api = null ; 
@@ -440,7 +452,7 @@ public class Testgui {
             	  int rowNumber = tableConcepts.getRowCount() ;
             	  DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
             	  DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
-            	  
+            	  root.removeAllChildren();
             	     for (int i = 0; i < rowNumber; i++) {
             	    	 
             	    	 String concept = tableConcepts.getModel().getValueAt(i, 1).toString();
@@ -491,6 +503,7 @@ public class Testgui {
             	  int rowNumber = tableConcepts.getRowCount() ;
             	  DefaultTreeModel model = (DefaultTreeModel) treeSyn.getModel();
             	  DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+            	  root.removeAllChildren();
             	  
             	     for (int i = 0; i < rowNumber; i++) {
             	    	 
@@ -574,6 +587,92 @@ public class Testgui {
             }
         });
 	}
+	
+	private void LearningOnto()
+	{
+		btnLearn.addActionListener(new ActionListener(){
+        	@Override
+            public void actionPerformed(ActionEvent e) {
+
+              if ( tableConcepts.getRowCount() == 0)
+              {
+            	  JOptionPane.showMessageDialog(null, "No Concepts", "No Concepts" , JOptionPane.OK_CANCEL_OPTION);
+              }
+              else
+              {
+          	      OntModel OntoGraph = ModelFactory.createOntologyModel();
+        		  OntoGraph.setNsPrefix( "skos", BioPontologyfactory.skos) ;
+            	  int rowNumber = tableConcepts.getRowCount() ;
+            	  DefaultTreeModel model = (DefaultTreeModel) tree.getModel();
+            	  DefaultMutableTreeNode root = (DefaultMutableTreeNode) model.getRoot();
+            	  
+            	     for (int i = 0; i < rowNumber; i++) 
+            	     {
+            	    	 
+            	    	 String concept = tableConcepts.getModel().getValueAt(i, 1).toString();
+            	    	 try {
+							BioPontologyfactory.createOntoBioP(concept ,OntoGraph);
+							
+						} catch (IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						} catch (ParseException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+            	    	 
+            	     }
+            	     ByteArrayOutputStream test = new ByteArrayOutputStream();
+            	     PrintStream PS = new PrintStream(test);
+            	     PrintStream console= System.out;
+            	     System.setOut(PS);
+            	     OntoGraph.write(System.out, "RDF/XML-ABBREV") ;
+            	     System.setOut(console);
+            	     textOnto.setText(test.toString());
+            	     
+
+              }
+            }
+        });
+		
+		
+		
+		btnSaveOnto.addActionListener(new ActionListener(){
+        	@Override
+            public void actionPerformed(ActionEvent e) {
+    
+    	       //Create a file chooser
+    		JFileChooser fc = new JFileChooser();
+    		
+    		
+    		
+    		int returnVal = fc.showSaveDialog(null);
+            if (returnVal == JFileChooser.APPROVE_OPTION) 
+            {
+                File file = fc.getSelectedFile();
+                //This is where a real application would save the file.
+   
+       	     PrintStream PS;
+			try {
+				 PS = new PrintStream(file);
+	    	     PrintStream console= System.out;
+	       	     System.setOut(PS);
+	       	     System.out.println(textOnto.getText()) ;
+	       	     System.setOut(console);
+	                
+			} catch (FileNotFoundException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+   
+            } 
+
+        		
+
+            }
+        });
+	}
+	
 	/**
 	 * Create the application.
 	 */
@@ -585,6 +684,7 @@ public class Testgui {
 		createHierarchyExtraction();
 		createSynonym(); 
 		createAssc();
+		LearningOnto(); 
         
 		
 	}
@@ -595,12 +695,12 @@ public class Testgui {
 	private void initialize() {
 		frmLifeonto = new JFrame();
 		frmLifeonto.setTitle("LifeOnto");
-		frmLifeonto.setBounds(100, 100, 638, 444);
+		frmLifeonto.setBounds(100, 100, 670, 469);
 		frmLifeonto.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmLifeonto.getContentPane().setLayout(null);
 		
 		JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		tabbedPane.setBounds(0, 0, 622, 406);
+		tabbedPane.setBounds(0, 0, 644, 420);
 		frmLifeonto.getContentPane().add(tabbedPane);
 		
 		JPanel panel = new JPanel();
@@ -629,7 +729,7 @@ public class Testgui {
 		
 		panel_3 = new JPanel();
 		panel_3.setBorder(new TitledBorder(null, "N-Gram", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		panel_3.setBounds(20, 87, 178, 82);
+		panel_3.setBounds(10, 87, 178, 82);
 		panel.add(panel_3);
 		panel_3.setLayout(null);
 		
@@ -671,6 +771,14 @@ public class Testgui {
 		chckbxBio.setBounds(6, 84, 149, 23);
 		panel_4.add(chckbxBio);
 		
+		chckbxontoMode = new JCheckBox("Restricted");
+		chckbxontoMode.setBounds(28, 214, 97, 23);
+		panel.add(chckbxontoMode);
+		
+		JLabel lblOntologyMode = new JLabel("Ontology Mode");
+		lblOntologyMode.setBounds(28, 196, 97, 14);
+		panel.add(lblOntologyMode);
+		
 		JPanel panel_1 = new JPanel();
 		tabbedPane.addTab("Data Extraction", null, panel_1, null);
 		panel_1.setLayout(null);
@@ -710,7 +818,7 @@ public class Testgui {
 		JScrollPane scrollPane = new JScrollPane();
 		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
-		scrollPane.setBounds(20, 152, 571, 185);
+		scrollPane.setBounds(14, 136, 571, 185);
 		panel_1.add(scrollPane);
 		
 		titleTable = new JTable();
@@ -733,11 +841,11 @@ public class Testgui {
 		scrollPane.setViewportView(titleTable);
 		
 		btnSave = new JButton("Save");
-		btnSave.setBounds(30, 348, 89, 23);
+		btnSave.setBounds(20, 332, 89, 23);
 		panel_1.add(btnSave);
 		
 		btnOpen = new JButton("Open");
-		btnOpen.setBounds(482, 348, 89, 23);
+		btnOpen.setBounds(481, 332, 89, 23);
 		panel_1.add(btnOpen);
 		
 		panel_2 = new JPanel();
@@ -810,7 +918,10 @@ public class Testgui {
 		panel_5.add(btnHrchyExtraction);
 		
 		JScrollPane scrollPane_3 = new JScrollPane();
-		scrollPane_3.setBounds(27, 21, 565, 250);
+		scrollPane_3.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		scrollPane_3.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+		scrollPane_3.setViewportBorder(new TitledBorder(null, "", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		scrollPane_3.setBounds(20, 21, 586, 255);
 		panel_5.add(scrollPane_3);
 		
 		tree = new JTree();
@@ -821,13 +932,15 @@ public class Testgui {
 				}
 			}
 		));
-		scrollPane_3.setColumnHeaderView(tree);
+		scrollPane_3.setViewportView(tree);
 		
 		JPanel panel_6 = new JPanel();
 		tabbedPane.addTab("Synonym ", null, panel_6, null);
 		panel_6.setLayout(null);
 		
 		JScrollPane scrollPane_4 = new JScrollPane();
+		scrollPane_4.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		scrollPane_4.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
 		scrollPane_4.setBounds(33, 22, 550, 259);
 		panel_6.add(scrollPane_4);
 		
@@ -838,7 +951,7 @@ public class Testgui {
 				}
 			}
 		));
-		scrollPane_4.setColumnHeaderView(treeSyn);
+		scrollPane_4.setViewportView(treeSyn);
 		
 		btnSyn = new JButton("Extraction");
 		btnSyn.setBounds(260, 305, 106, 23);
@@ -866,5 +979,26 @@ public class Testgui {
 		btnAssc = new JButton("Extraction");
 		btnAssc.setBounds(253, 331, 133, 23);
 		panel_7.add(btnAssc);
+		
+		JPanel panel_8 = new JPanel();
+		tabbedPane.addTab("Ontology Learning", null, panel_8, null);
+		panel_8.setLayout(null);
+		
+		btnLearn = new JButton("Learn");
+		btnLearn.setBounds(275, 11, 89, 23);
+		panel_8.add(btnLearn);
+		
+		btnSaveOnto = new JButton("Save");
+		btnSaveOnto.setBounds(263, 331, 89, 23);
+		panel_8.add(btnSaveOnto);
+		
+		JScrollPane scrollPane_6 = new JScrollPane();
+		scrollPane_6.setBounds(10, 49, 619, 266);
+		scrollPane_6.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+		scrollPane_6.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+		panel_8.add(scrollPane_6);
+		
+		textOnto = new JTextArea();
+		scrollPane_6.setViewportView(textOnto);
 	}
 }

@@ -2,6 +2,8 @@
 package util;
 import java.util.*;
 
+import org.apache.commons.lang3.StringUtils;
+
 public class NGramAnalyzer  {
 
 	    public static List<String> ngrams(int n, String str) {
@@ -35,6 +37,7 @@ public class NGramAnalyzer  {
 	        for (int n = min; n <=max; n++) {
 	            for (String ngram : ngrams(n, sentance)){
 	                System.out.println(ngram);
+	                if ( ngram.length() > 2 && !StringUtils.isNumeric(ngram))
 	            	entity.put(ngram,1)  ;
 	            }
 	            System.out.println();

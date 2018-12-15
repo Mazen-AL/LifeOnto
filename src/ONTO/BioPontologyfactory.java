@@ -20,16 +20,38 @@ import java.util.Map;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import javax.swing.tree.DefaultMutableTreeNode;
 
 import org.json.simple.parser.ParseException;
 
 import util.bioportal;
+import util.dataExtractor;
 import HRCHY.hierarchy;
 import RICH.Enrichment;
+import Stat.Scoring;
 
 import com.hp.hpl.jena.ontology.OntClass;
 import com.hp.hpl.jena.ontology.OntModel;
+import com.hp.hpl.jena.query.Query;
+import com.hp.hpl.jena.query.QueryExecution;
+import com.hp.hpl.jena.query.QueryExecutionFactory;
+import com.hp.hpl.jena.query.QueryFactory;
+import com.hp.hpl.jena.query.QuerySolution;
+import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Property;
@@ -41,18 +63,20 @@ import com.hp.hpl.jena.rdf.model.StmtIterator;
 
 public class BioPontologyfactory {
 
-   static  String skos = "http://www.w3.org/2004/02/skos/core#" ;
+   public static  String skos = "http://www.w3.org/2004/02/skos/core#" ;
    static String  rdfs = "http://www.w3.org/2000/01/rdf-schema#" ;
    static String  rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#" ;
    static String  owl = "http://www.w3.org/2002/07/owl#" ;
+   static String  lo = "http://www.lifeOnto.org/lifeOnto#" ;
+   static String  ica=  "http://www.mii.ucla.edu/~willhsu/ontologies/ica_ontology#" ;
    
    // An ontology model is an extension of the Jena RDF model 
   // static    OntModel OntoGraph = ModelFactory.createOntologyModel(); 
 	
 	public static void main(String[] args) throws IOException, ParseException {
 		// TODO Auto-generated method stub
-		
-		createOntoBioP("Venous Thromboembolism");
+		riskFactorToOnto1(null,"alcohol", null) ;
+//		ethnicityToOnto("Venous Thromboembolism whiteguy Black","alcohol",null);
 	}
 
 	
@@ -70,7 +94,7 @@ public class BioPontologyfactory {
 			definitionToOnto (concept,URI,OntoGraph) ;
 			semTypeToOnto(concept,URI,OntoGraph) ;
 			//OntoGraph.write(System.out, "RDF/XML-ABBREV") ;
-			loadTaxonomic(concept,URI,1,OntoGraph);	
+			//loadTaxonomic(concept,URI,1,OntoGraph);	
 			//OntoGraph.write(System.out, "RDF/XML-ABBREV") ;
 		}
 		return OntoGraph ;
@@ -90,25 +114,80 @@ public class BioPontologyfactory {
 		definitionToOnto (concept,URI,OntoGraph) ;
 		semTypeToOnto(concept,URI,OntoGraph) ;
 		OntoGraph.write(System.out, "RDF/XML-ABBREV") ;
-		loadTaxonomic(concept,URI,1,OntoGraph);	
+//		loadTaxonomic(concept,URI,1,OntoGraph);	
 		//OntoGraph.write(System.out, "RDF/XML-ABBREV") ;
 		return OntoGraph ;
 	}
 	
+	
 	// adding a concept as owl class and rdfs:label
+		public static String classToOnto (String concept,String SemGroup, OntModel OntoGraph)
+		{
+			// the URI is equal to preflabel uri
+			String conceptURI = bioportal.getConceptID(concept);
+			System.out.println("classToOnto");
+			Resource r = null ; 
+			if (conceptURI != null )
+			{
+				if (( r= OntoGraph.getOntClass(conceptURI) ) == null)
+				{
+					OntClass rec = OntoGraph.createClass(conceptURI);
+					// assign a Label 
+					final Property p = ResourceFactory.createProperty(rdfs + "label") ;
+					rec.addProperty(p, concept);
+					
+					final Property p1 = ResourceFactory.createProperty(lo + "Aneurasyms_related") ;
+					rec.addLiteral(p1, 1);
+					
+					final Property p2 = ResourceFactory.createProperty(lo + "Semantic_Group") ;
+					rec.addLiteral(p2, SemGroup);
+					
+					return conceptURI ;
+				}
+				else
+				{
+					final Property p2 = ResourceFactory.createProperty(lo + "Aneurasyms_related") ;
+					Statement st = r.getProperty(p2) ;
+					RDFNode node = st.getObject();
+					long value = node.asLiteral().getLong() ;
+					st = st.changeLiteralObject(value+1) ;
+					return conceptURI ;
+				}
+			}
+			
+			return null;
+		}
+	
+	// adding a concept as owl class and rdfs:label and the frequency 
 	public static String classToOnto (String concept,OntModel OntoGraph)
 	{
 		// the URI is equal to preflabel uri
 		String conceptURI = bioportal.getConceptID(concept);
 		System.out.println("classToOnto");
+		Resource r = null ; 
 		if (conceptURI != null )
 		{
-			OntClass rec = OntoGraph.createClass(conceptURI);
-			// assign a Label 
-			final Property p = ResourceFactory.createProperty(rdfs + "label") ;
-			rec.addProperty(p, concept);
-			return conceptURI ;
+			if (( r= OntoGraph.getOntClass(conceptURI) ) == null)
+			{
+				OntClass rec = OntoGraph.createClass(conceptURI);
+				// assign a Label 
+				final Property p = ResourceFactory.createProperty(rdfs + "label") ;
+				rec.addProperty(p, concept);
+				
+				final Property p1 = ResourceFactory.createProperty(lo + "frequency") ;
+				rec.addLiteral(p1, 1);
+				return conceptURI ;
+			}
+			else
+			{
+				final Property p2 = ResourceFactory.createProperty(lo + "frequency") ;
+				Statement st = r.getProperty(p2) ;
+				RDFNode node = st.getObject();
+				long value = node.asLiteral().getLong() ;
+				st = st.changeLiteralObject(value+1) ;
+			}
 		}
+		
 		return null;
 	}
 	// adding a concept as owl class and rdfs:label
@@ -119,6 +198,22 @@ public class BioPontologyfactory {
 		if (conceptURI != null )
 		{
 			OntClass rec = OntoGraph.createClass(conceptURI);
+			return rec ;
+		}
+		return null;
+	}
+	// adding a concept as owl class and rdfs:label
+	public static OntClass classToOnto_URI (String conceptURI,String label, OntModel OntoGraph)
+	{
+		// the URI is equal to preflabel uri
+		System.out.println("classToOnto");
+		if (conceptURI != null )
+		{
+			OntClass rec = OntoGraph.createClass(conceptURI);
+			// assign a Label 
+			final Property p = ResourceFactory.createProperty(rdfs + "label") ;
+			rec.addProperty(p, label);
+			
 			return rec ;
 		}
 		return null;
@@ -164,7 +259,7 @@ public class BioPontologyfactory {
 	}
 	
 	
-	public static void loadTaxonomic(String concept,String URI,int maxLevel,OntModel OntoGraph) throws IOException, ParseException {
+	public static void loadTaxonomic(String concept,String URI,OntModel OntoGraph) throws IOException, ParseException {
 		
 		
 		List<String>   listTaxon = bioportal.getTaxonomic(concept,1) ; 
@@ -223,15 +318,19 @@ public class BioPontologyfactory {
 	{
 		
 		// generating synonyms wiht skos:altLabel
-		Map<String, Integer> defs =  bioportal.getSemanticTypes(concept);
+		Map<String, Integer> semTypes =  bioportal.getSemanticTypes(concept);
 		System.out.println("getontoSemantic Type");
 		Resource r = null ; 
-		for (String def:  defs.keySet())
+		for (String semType:  semTypes.keySet())
 		{
 			if ( ( r= OntoGraph.getOntClass(URI) ) != null)
 			{
 				final Property p = ResourceFactory.createProperty(skos + "type") ;
-				r.addProperty(p, def);
+				r.addProperty(p, semType);
+				
+				
+				final Property p1 = ResourceFactory.createProperty(lo + "Semantic_Type_Label") ;
+				r.addProperty(p1, bioportal.getSemanticTypeNames(semType));
 			}
 			else
 				break ; 
@@ -260,6 +359,646 @@ public class BioPontologyfactory {
 		}
 	}
 	
+	public static void has_symptomToOnto (String PrimaryConcept,String  cp ,OntModel OntoGraph) throws IOException, ParseException
+	{
+		
+		// create new has symptom relation between the PrimaryConcept and discovered concept if discovered concept is symptom semantic type 
+		String cptURI = bioportal.getConceptID(PrimaryConcept);
+		Map<String, Integer> semTypeCp =  bioportal.getSemanticTypes(PrimaryConcept);
+		
+		// if the concept is symptom then skip it.
+		if ( semTypeCp.size() == 1 && semTypeCp.containsKey("T184"))
+		   return ; 
+		
+		
+		System.out.println("has_symptomToOnto");
+		Resource recPrimaryConcept = null ; 
+		Resource r1 = null ;
+
+		{
+			// don't add relation for itself
+			if(cp.equalsIgnoreCase(PrimaryConcept))
+              return ; 
+			
+			Map<String, Integer> semType =  bioportal.getSemanticTypes(cp);
+			
+			for (String st:  semType.keySet())
+			{
+				if(st.equalsIgnoreCase("T184"))  
+				{
+					String conceptURI = bioportal.getConceptID(cp);
+					if ( ( recPrimaryConcept= OntoGraph.getOntClass(cptURI) ) != null) // get the primary concept resource 
+					{
+						final Property has_Symptom = ResourceFactory.createProperty(lo + "has_Symptom") ; // create new property 
+						
+						
+						if (( r1 = OntoGraph.getOntClass(conceptURI) ) != null) // get the concept resource 
+						{
+							
+							// the symptom is already discovered before 
+							// then add the frequency  
+							recPrimaryConcept.addProperty(has_Symptom,r1);
+							
+							
+							// update the frequency by one. 
+							final Property p2 = ResourceFactory.createProperty(lo + "frequency") ;
+							Statement stm = r1.getProperty(p2) ;
+							RDFNode node = stm.getObject();
+							long value = node.asLiteral().getLong() ;
+							stm = stm.changeLiteralObject(value+1) ;
+							
+							
+						}
+						else
+						{
+							
+							String uri = classToOnto (cp,OntoGraph);
+							r1 = OntoGraph.getOntClass(uri) ;
+							recPrimaryConcept.addProperty(has_Symptom,r1);
+														
+							// set frequency value to 1 
+							final Property p2 = ResourceFactory.createProperty(lo + "frequency") ;
+							r1.addLiteral(p2, 1);
+							
+						}
+						
+						Scoring.setOccurence_Probability(conceptURI, recPrimaryConcept, OntoGraph);
+						Scoring.Tier_Rank(conceptURI, recPrimaryConcept, OntoGraph);
+						
+					}
+					else
+						break ; 
+					System.out.println(st);
+				}
+			}
+			
+		}
+	}
+	
+	public static void treated_byToOnto (String PrimaryConcept,String cp,OntModel OntoGraph) throws IOException, ParseException
+	{
+		// this function created a treated by relation between the discovred concept and primary concept if the discovered one is Chemicals & Drugs semantic group 
+		
+		String cptURI = bioportal.getConceptID(PrimaryConcept);
+		Map<String, Integer> semGroupCp =  bioportal.getSemanticGroup(PrimaryConcept); 
+		
+
+		if ( semGroupCp.size() == 1 && semGroupCp.containsKey("Chemicals & Drugs"))
+		   return ; 
+		
+		
+		System.out.println("TreatsToOnto ");
+		Resource recPrimaryConcept = null ; 
+		Resource r1 = null ;
+		
+		{
+			// don't add relation for itself
+			if(cp.equalsIgnoreCase(PrimaryConcept))
+				return ; 
+			
+			Map<String, Integer> semGroup =  bioportal.getSemanticGroup(cp);
+			
+			for (String st:  semGroup.keySet())
+			{
+				if(st.equalsIgnoreCase("Chemicals & Drugs"))
+				{
+					String conceptURI = bioportal.getConceptID(cp);
+					if ( ( recPrimaryConcept= OntoGraph.getOntClass(cptURI) ) != null)
+					{
+						final Property p = ResourceFactory.createProperty(lo + "treated_by") ;
+						
+						
+						if (( r1 = OntoGraph.getOntClass(conceptURI) ) != null)
+						{
+							recPrimaryConcept.addProperty(p,r1);
+							
+							// update the frequency by one. 
+							final Property p2 = ResourceFactory.createProperty(lo + "frequency") ;
+							Statement stm = r1.getProperty(p2) ;
+							RDFNode node = stm.getObject();
+							long value = node.asLiteral().getLong() ;
+							stm = stm.changeLiteralObject(value+1) ;
+						}
+						else
+						{
+							String uri = classToOnto (cp,OntoGraph);
+							r1 = OntoGraph.getOntClass(uri) ;
+							recPrimaryConcept.addProperty(p,r1);
+							
+							// set frequency value to 1 
+							final Property p2 = ResourceFactory.createProperty(lo + "frequency") ;
+							r1.addLiteral(p2, 1);
+						}
+						
+						Scoring.setOccurence_Probability(conceptURI, recPrimaryConcept, OntoGraph);
+						Scoring.Tier_Rank(conceptURI, recPrimaryConcept, OntoGraph);
+						
+					}
+					else
+						break ; 
+					System.out.println(st);
+				}
+			}
+			
+		}
+	}
+	
+	public static void locationToOnto (String PrimaryConcept,String cp,OntModel OntoGraph) throws IOException, ParseException
+	{
+		
+		String cptURI = bioportal.getConceptID(PrimaryConcept);
+		Map<String, Integer> semGroupCp =  bioportal.getSemanticGroup(PrimaryConcept); 
+		
+
+		if ( semGroupCp.size() == 1 && semGroupCp.containsKey("Anatomy"))
+		   return ; 
+		
+		
+		System.out.println("locationToOnto ");
+		Resource recPrimaryConcept = null ; 
+		Resource r1 = null ;
+		{
+			// don't add relation for itself
+			if(cp.equalsIgnoreCase(PrimaryConcept))
+				return ; 
+			
+			Map<String, Integer> semGroup =  bioportal.getSemanticGroup(cp);
+			
+			for (String st:  semGroup.keySet())
+			{
+				if(st.equalsIgnoreCase("Anatomy"))
+				{
+					String conceptURI = bioportal.getConceptID(cp);
+					if ( ( recPrimaryConcept= OntoGraph.getOntClass(cptURI) ) != null)
+					{
+						final Property p = ResourceFactory.createProperty(lo + "location") ;
+						
+						
+						if (( r1 = OntoGraph.getOntClass(conceptURI) ) != null)
+						{
+							recPrimaryConcept.addProperty(p,r1);
+							// update the frequency by one. 
+							final Property p2 = ResourceFactory.createProperty(lo + "frequency") ;
+							Statement stm = r1.getProperty(p2) ;
+							RDFNode node = stm.getObject();
+							long value = node.asLiteral().getLong() ;
+							stm = stm.changeLiteralObject(value+1) ;
+						}
+						else
+						{
+							String uri = classToOnto (cp,OntoGraph);
+							r1 = OntoGraph.getOntClass(uri) ;
+							recPrimaryConcept.addProperty(p,r1);
+							
+							// set frequency value to 1 
+							final Property p2 = ResourceFactory.createProperty(lo + "frequency") ;
+							r1.addLiteral(p2, 1);
+						}
+						
+						Scoring.setOccurence_Probability(conceptURI, recPrimaryConcept, OntoGraph);
+						Scoring.Tier_Rank(conceptURI, recPrimaryConcept, OntoGraph);
+						
+					}
+					else
+						break ; 
+					System.out.println(st);
+				}
+			}
+			
+		}
+	}
+	public static void diagnoses_byToOnto (String PrimaryConcept,String cp,OntModel OntoGraph) throws IOException, ParseException
+	{
+		
+		String cptURI = bioportal.getConceptID(PrimaryConcept);
+		Map<String, Integer> semGroupCp =  bioportal.getSemanticGroup(PrimaryConcept); 
+		
+
+		if ( semGroupCp.size() == 1 && semGroupCp.containsKey("Device"))
+		   return ; 
+		
+		
+		System.out.println("diagnoses_by");
+		Resource recPrimaryConcept = null ; 
+		Resource r1 = null ;
+		{
+			// don't add relation for itself
+			if(cp.equalsIgnoreCase(PrimaryConcept))
+				return ; 
+			
+			Map<String, Integer> semGroup =  bioportal.getSemanticGroup(cp);
+			
+			for (String st:  semGroup.keySet())
+			{
+				if(st.equalsIgnoreCase("Devices"))
+				{
+					String conceptURI = bioportal.getConceptID(cp);
+					if ( ( recPrimaryConcept= OntoGraph.getOntClass(cptURI) ) != null)
+					{
+						final Property p = ResourceFactory.createProperty(lo + "diagnoses_by") ;
+						
+						
+						if (( r1 = OntoGraph.getOntClass(conceptURI) ) != null)
+						{
+							recPrimaryConcept.addProperty(p,r1);
+							// update the frequency by one. 
+							final Property p2 = ResourceFactory.createProperty(lo + "frequency") ;
+							Statement stm = r1.getProperty(p2) ;
+							RDFNode node = stm.getObject();
+							long value = node.asLiteral().getLong() ;
+							stm = stm.changeLiteralObject(value+1) ;
+						}
+						else
+						{
+							String uri = classToOnto (cp,OntoGraph);
+							r1 = OntoGraph.getOntClass(uri) ;
+							recPrimaryConcept.addProperty(p,r1);
+							
+							// set frequency value to 1 
+							final Property p2 = ResourceFactory.createProperty(lo + "frequency") ;
+							r1.addLiteral(p2, 1);
+						}
+						
+						
+						Scoring.setOccurence_Probability(conceptURI, recPrimaryConcept, OntoGraph);
+						Scoring.Tier_Rank(conceptURI, recPrimaryConcept, OntoGraph);
+						
+					}
+					else
+						break ; 
+					System.out.println(st);
+				}
+			}
+			
+		}
+	}
+	
+	public static int genderToOnto(String sentence) 
+	{
+		
+		String[] tokens = sentence.split(sentence); 
+		
+		if ( tokens != null)
+		{
+			String[] flist= {"female","women", "miss","lady","mother","wife"} ; 
+			String[] mlist= {"male","man","father","husband", "guy"} ; 
+			int fCount = 0 ; 
+			int mCount = 0 ; 
+			for (int i =0; i < tokens.length; i++ )
+			{
+				
+				for (int f = 0; f < flist.length; f++)
+				{
+					if (tokens[i].compareToIgnoreCase(flist[f]) == 0 )
+					{
+						fCount++ ; 
+					}
+				}
+				
+				for (int m = 0; m < mlist.length; m++)
+				{
+					if (tokens[i].compareToIgnoreCase(mlist[m]) == 0 )
+					{
+						mCount++ ; 
+					}
+				}
+			}
+			
+			if( fCount > mCount)
+			{
+				return 1 ; 
+			}
+			else
+			{
+				return 2 ; 
+			}
+
+		}
+		
+		return 0 ; 
+	}
+	
+	public static String ethnicityToOnto(String sentence,String concept,OntModel OntoGraph) 
+	{
+		
+		String[] tokens = sentence.split(sentence); 
+		 String URI = null ;
+		
+		if ( tokens != null)
+		{
+			String[] whiteRace= {"White","Europe", "Middle East","North Africa","caucasian"} ; 
+			String[] blackRace= {"black","African American", "Africa"} ; 
+			String[] asianRace= {"Asian","Far East", "Southeast Asia", "Indian"} ;
+			String[] HawaiianRace= {"Hawaii","Guam", "Samoa", "Pacific Islands"} ;
+
+			int[] race = {0,0,0,0} ;  
+
+			
+			for (int j = 0; j < whiteRace.length; j++)
+			{
+				if (isContain(sentence,whiteRace[j]))
+				{
+					race[0] =  race[0] + 1 ; 
+				}
+			}
+			
+			
+			for (int j = 0; j < blackRace.length; j++)
+			{
+				if (isContain(sentence,blackRace[j]))
+				{
+					race[1] =  race[1] + 1 ; 
+				}
+			}
+	
+			for (int j = 0; j < asianRace.length; j++)
+			{
+				if (isContain(sentence,asianRace[j]))
+				{
+					race[2] =  race[2] + 1 ; 
+				}
+			}
+			for (int j = 0; j < HawaiianRace.length; j++)
+			{
+				if (isContain(sentence,HawaiianRace[j]))
+				{
+					race[3] =  race[3] + 1 ; 
+				}
+			}	
+			
+			int max = 0 ; 
+			for (int j = 0; j < race.length; j++)
+			{
+				if (race[j]> max)
+				{
+					max =  j ; 
+				}
+			}; 
+			
+		  
+	       switch (max)
+	       {
+	       case 0:
+	    	  URI = classToOnto ("White",OntoGraph) ;
+              break ; 
+	       case 1:
+	    	   URI = classToOnto ("Black",OntoGraph) ;
+	    	   break ; 
+	       case 2:
+	    	   URI = classToOnto ("Asian",OntoGraph) ;
+	    	   break ; 
+	       case 3:
+	    	   URI = classToOnto ("Hawaiian",OntoGraph) ;
+	    	   break ; 
+	       default:
+	    	   URI = classToOnto ("White",OntoGraph) ;
+	    	   break ; 
+	    	   
+	       }
+	       
+	       Resource r = null ; 
+	       if ( ( r= OntoGraph.getOntClass(URI) ) == null)
+	       {
+		       // adding new risckfactor relations 
+	    	   String cptURI = bioportal.getConceptID(concept);
+	    	   Resource resPrimery= OntoGraph.getOntClass(cptURI) ;
+		       final Property p = ResourceFactory.createProperty(lo + "RiskFactor") ;//
+			   Resource  BlankNodeComorbid_Relation = OntoGraph.createResource() ;
+			   resPrimery.addProperty(p,BlankNodeComorbid_Relation) ; 
+			   final Property p2 = ResourceFactory.createProperty(lo + "ethnicity") ;
+			   Resource res= OntoGraph.getOntClass(URI) ;
+			   BlankNodeComorbid_Relation.addProperty(p2,res);
+	       }
+	       
+		}
+		return URI ;
+
+	}
+	
+	
+    private static boolean isContain(String source, String subItem){
+        String pattern = "\\b"+subItem.toLowerCase()+"\\b";
+        Pattern p=Pattern.compile(pattern);
+        Matcher m=p.matcher(source.toLowerCase());
+        return m.find();
+   }
+    
+    public static void riskFactorToOnto1 (String Primaryconcept,String concept,OntModel OntoGraph) throws IOException, ParseException
+    
+	{
+    	String pcptURI = bioportal.getConceptID(Primaryconcept);
+    	 Resource res = null ; 
+    	// update ICA ontology with new riskfactors
+    	OntModel ICAOnto = dataExtractor.riskFactorExtractor("C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\data\\ica_ontology_updated_aug_27.owl")  ;
+    	
+    	
+    	// build query string to map the concept to on of the existing predefine riskfactors in ontology 
+		String queryString=
+				"PREFIX p: <http://dbpedia.org/property/>"+
+				"PREFIX dbpedia: <http://dbpedia.org/resource/>"+
+				"PREFIX category: <http://dbpedia.org/resource/Category:>"+
+				"PREFIX lo: <http://www.lifeOnto.org/lifeOnto#>" +
+				"PREFIX skos: <http://www.w3.org/2004/02/skos/core#>"+
+				"PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
+				"Select ?concept ?riskfactCat  where { ?concept rdfs:label|skos:altLabel"  + "\"" +  concept + "\" ."  + 
+				"?concept rdfs:subClassOf ?riskfactCat ." +
+				"?riskfactCat rdfs:subClassOf ica:risk_factors" + "}";
+		
+		Model model = ICAOnto.getBaseModel() ;
+		//model.write(System.out, "RDF/XML-ABBREV") ;
+		Query query = QueryFactory.create(queryString) ;
+		QueryExecution qexec = QueryExecutionFactory.create(query, model) ;
+		ResultSet results = qexec.execSelect() ;
+		String riskfactor = null ;
+		String riskfactorCat = null ;
+
+		for ( ; results.hasNext() ; )
+	    {
+	      QuerySolution soln = results.nextSolution() ;
+	      riskfactor = soln.get("?concept").toString() ; 	
+	      riskfactorCat= soln.get("?riskfactCat").toString() ;
+	      break;
+	    }
+		
+		Resource recPrimaryConcept= null ;
+		OntClass recRiskfactor = null ;
+		Resource recCatRiskfactor = null ;
+		if ( ( recPrimaryConcept= OntoGraph.getOntClass(pcptURI) ) != null && riskfactor != null)
+		{
+			// create property
+			final Property has_riskfactor = ResourceFactory.createProperty(lo + "has_riskfactor") ;//
+			final Property frequency = ResourceFactory.createProperty(lo + "frequency") ;
+			
+			String rfURI = riskfactor ;
+			String rgCatURI = riskfactorCat ;
+			
+			// the riskfactor exist 
+			if (( recRiskfactor = OntoGraph.getOntClass(rfURI))  != null  &&   ( recCatRiskfactor = OntoGraph.getOntClass(rgCatURI))  != null )
+			{
+			    // update  Probability_values 
+				
+				final Property p2 = ResourceFactory.createProperty(lo + "frequency") ;
+				Statement st = recRiskfactor.getProperty(p2) ;
+				RDFNode node = st.getObject();
+				long value = node.asLiteral().getLong() ;
+				st = st.changeLiteralObject(value+1) ;
+
+				
+			}
+			else
+			{
+                // adding the new concept and the label
+				String uri = classToOnto (rfURI,concept,OntoGraph);
+				recRiskfactor = OntoGraph.getOntClass(uri) ;
+				recRiskfactor.addLiteral(frequency, 1);
+				recRiskfactor.addSuperClass(recCatRiskfactor);
+				recPrimaryConcept.addProperty(has_riskfactor,recRiskfactor);
+
+			}
+			
+			Scoring.setOccurence_Probability(rfURI, recPrimaryConcept, OntoGraph);
+			Scoring.Tier_Rank(rfURI, recPrimaryConcept, OntoGraph);
+		}
+
+	}
+	
+	
+	public static void ComorbidToOnto (String Primaryconcept,Map<String, String> concepts,OntModel OntoGraph) throws IOException, ParseException
+	{
+		
+		String cptURI = bioportal.getConceptID(Primaryconcept);
+		Map<String, Integer> semTypeCp =  bioportal.getSemanticTypes(Primaryconcept);
+		
+		
+		System.out.println("ComorbidToOnto");
+		Resource r = null ; 
+		Resource r1 = null ;
+		for (String cp:  concepts.keySet())
+		{
+			// don't add relation for itself
+			if(cp.equalsIgnoreCase(Primaryconcept))
+				continue ; 
+			
+			Map<String, Integer> semType =  bioportal.getSemanticTypes(cp);
+			
+			if ( semTypeCp.size() == 1 && semTypeCp.containsKey("T047"))
+			{
+				
+				String conceptURI = bioportal.getConceptID(cp);
+				if ( ( r= OntoGraph.getOntClass(cptURI) ) != null)
+				{
+					final Property p = ResourceFactory.createProperty(lo + "has_Comorbid") ;
+					
+					
+					if (( r1 = OntoGraph.getOntClass(conceptURI) ) != null)
+					{
+						r.addProperty(p,r1);
+					}
+					else
+					{
+						String uri = classToOnto (cp,OntoGraph);
+						r1 = OntoGraph.getOntClass(uri) ;
+						r.addProperty(p,r1);
+					}
+					
+				}				
+			}
+		}
+
+			
+	}
+	
+
+	
+		public static void ComorbidToOnto1 (String Primaryconcept,Map<String, String> concepts,OntModel OntoGraph) throws IOException, ParseException
+		{
+			
+			String cptURI = bioportal.getConceptID(Primaryconcept);
+			Map<String, Integer> semTypeCp =  bioportal.getSemanticTypes(Primaryconcept);
+			
+			
+			System.out.println("ComorbidToOnto");
+			Resource r = null ; 
+			Resource r1 = null ;
+			// loop of other concepts 
+			for (String cp:  concepts.keySet())
+			{
+				// don't add relation for itself
+				if(cp.equalsIgnoreCase(Primaryconcept))
+					continue ; 
+				
+				// retrive the semantic type 
+				Map<String, Integer> semType =  bioportal.getSemanticTypes(cp);
+				
+				// disease 
+				if ( semType.containsKey("T047"))
+				{
+					
+					
+					if ( ( r= OntoGraph.getOntClass(cptURI) ) != null)
+					{
+						String queryString=
+								"PREFIX p: <http://dbpedia.org/property/>"+
+								"PREFIX dbpedia: <http://dbpedia.org/resource/>"+
+								"PREFIX category: <http://dbpedia.org/resource/Category:>"+
+								"PREFIX lo: <http://www.lifeOnto.org/lifeOnto#>" +
+								"PREFIX skos: <http://www.w3.org/2004/02/skos/core#>"+
+	 
+								"Select ?condition ?value where { <" + cptURI + "> "  + "has_disease_association " +  "?Comorbid_Relation." + 
+								        "?Comorbid_Relation lo:Disorder ?condition." +
+								"?Comorbid_Relation lo:Probability_values ?value }";
+						
+                        
+						final Property p = ResourceFactory.createProperty(lo + "has_disease_association") ;//
+						
+						// we need to check if this relation already exist in graph before we added it
+						
+						Model model = OntoGraph.getBaseModel() ;
+						//model.write(System.out, "RDF/XML-ABBREV") ;
+						Query query = QueryFactory.create(queryString) ;
+						QueryExecution qexec = QueryExecutionFactory.create(query, model) ;
+						ResultSet results = qexec.execSelect() ;
+						for ( ; results.hasNext() ; )
+					    {
+					      QuerySolution soln = results.nextSolution() ;
+					      
+					      String Comorbid_Relation = soln.get("?obj").asLiteral().getString() ; 
+					      int i = 0 ; 
+					      
+					    }
+						
+						
+						Resource  BlankNodeComorbid_Relation = OntoGraph.createResource() ;
+						r.addProperty(p,BlankNodeComorbid_Relation) ; 
+					
+						String conceptURI = bioportal.getConceptID(cp);
+						final Property p2 = ResourceFactory.createProperty(lo + "Disorder") ;
+						final Property p3 = ResourceFactory.createProperty(lo + "Probability_values") ;
+						
+						if (( r1 = OntoGraph.getOntClass(conceptURI) ) != null)
+						{
+						
+							BlankNodeComorbid_Relation.addProperty(p2,r1);
+							BlankNodeComorbid_Relation.addLiteral(p3, 0);
+						}
+						else
+						{
+							String uri = classToOnto (cp,OntoGraph);
+							r1 = OntoGraph.getOntClass(uri) ;
+							BlankNodeComorbid_Relation.addProperty(p2,r1);
+							BlankNodeComorbid_Relation.addLiteral(p3, 0);
+
+						}
+						
+					}				
+				}
+
+				
+			}
+		}
+		
+		
+		
 	/*public static void getontoSemanticType (Map<String, Dataset> lookupresources)
 	{
 		System.out.println("getontoSemanticType");

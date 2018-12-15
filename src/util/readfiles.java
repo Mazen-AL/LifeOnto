@@ -123,6 +123,31 @@ public class readfiles {
 
     }
     
+    public static Map<String, Integer> readLinesbylinesToMap(URL url) throws IOException
+    {
+
+    	Map<String, Integer> concepts = new HashMap<String, Integer>();
+        Reader fileReader = new InputStreamReader(url.openStream(), Charset.forName("UTF-8"));
+        List<String> lines;
+        BufferedReader bufferedReader = new BufferedReader(fileReader);
+        try 
+        {
+            lines = new ArrayList<String>();
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+            	if (!line.trim().isEmpty())
+            		concepts.put(line.trim().toLowerCase(),1);
+            }
+        }
+        finally
+        {
+        }
+        
+
+        return concepts;
+
+    }
+    
     /**
      * Reads the all lines from a file and places it in file as line 
      * 

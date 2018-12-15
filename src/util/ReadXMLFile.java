@@ -30,8 +30,53 @@ public class ReadXMLFile {
     public static void main(String[] args) {
     	//ReadPMC("F:\\TempDB\\PMCxxxx\\PMC0029XXXXX\\PMC2900151.xml") ;
     	//ReadChEBi("F:\\TempDB\\chebi.owl") ;
+    	
+    	ReadAneCN("C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\ClinicalNote\\CNGoldStandardJ.xml", "Has history of migraine headaches , 2 mm aneurysm of mid-cavernaous right internal carotid artery and asthma .") ; ; 
     }
 
+    
+    public static List<String>  ReadAneCN(String filename, String element) {
+
+        try {
+
+    	File fXmlFile = new File(filename);
+    	DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+    	DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+    	Document doc = dBuilder.parse(fXmlFile);
+
+    	doc.getDocumentElement().normalize();
+    	List<String> cps = new ArrayList<String>();
+    	System.out.println("Root element :" + doc.getDocumentElement().getNodeName());
+    	NodeList sents =  doc.getElementsByTagName("sentence") ; 
+    	for (int i = 0; i < sents .getLength()  ; i++) 
+    	{
+			 Node nBNode = sents.item(i) ; // binding
+			 Element eBElement = (Element) nBNode;
+			 System.out.println("Root element :" + eBElement.getNodeName());
+			 String text =  eBElement.getElementsByTagName("Text").item(0).getTextContent() ; 
+			 if(element.equalsIgnoreCase(text))
+			 {
+				 NodeList concepts =  eBElement.getElementsByTagName("Concept") ; 
+				 for (int j = 0; j < concepts .getLength()  ; j++) 
+				 {
+					 if ( !concepts.item(j).getTextContent().contains("others"))
+					     cps.add(concepts.item(j).getTextContent()) ; 
+				 }
+				 
+				 return cps ; 
+				 
+			 }
+    	}
+    	 return null ;
+    	 
+        } catch (Exception e) {
+    	e.printStackTrace();
+    	 return null ; 
+        }
+		
+        
+      }
+    
     
     public static List<String>  ReadPubmed(String xmlRecords, String element) {
 

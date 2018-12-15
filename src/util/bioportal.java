@@ -49,6 +49,7 @@ import javax.swing.JList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.apache.commons.lang3.StringUtils;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.w3c.dom.Document;
@@ -63,6 +64,25 @@ public class bioportal{
     static final String API_KEY = "cc3d58df-1850-49f0-a0c2-795ad7640622";
     static final ObjectMapper OBJ_MAPPER = new ObjectMapper();
     static final ObjectWriter writer = OBJ_MAPPER.writerWithDefaultPrettyPrinter();
+    
+	public static int Anatomy = 0 ; 
+	public static int ChemicalsDrugs = 0 ; 
+	public static int Disorders = 0 ; 
+	public static int Devices = 0 ; 
+	public static int Physiology = 0 ; 
+	public static int LivingBeing = 0 ; 
+	public static int Objects = 0 ; 
+	public static int Organizations = 0 ; 
+	public static int ActivitiesBehaviors = 0 ; 
+	public static int ConceptsIdeas = 0 ; 
+	public static int GenesMolecularSequences = 0 ; 
+	public static int GeographicAreas = 0 ; 
+	public static int Occupations = 0 ; 
+	public static int Phenomena = 0;
+	public static int Procedures = 0 ;
+	public static int others = 0 ; 
+    
+    
 	public static void main(String[] args) throws JsonProcessingException, IOException {
 	System.out.println(getSemanticTypes("melanoma"));
 
@@ -101,6 +121,30 @@ public class bioportal{
 
     }
 	
+	
+
+	public static Map<String, String>  getConcepts(Map<String, Integer> keywords) 
+    {
+		Map<String, String>  concepts = new HashMap<String, String>();
+		
+		for(String keyword: keywords.keySet())
+		{
+			if (keyword.length() > 1 && !StringUtils.isNumeric(keyword) && !keyword.isEmpty() && isConcept(keyword) )
+			{
+				Map<String, Integer> semGp = getSemanticGroup(keyword);
+				String groups = "" ; 
+				for(String gr:semGp.keySet())
+				{
+					groups += gr + " " ; 
+					 
+				}
+				concepts.put(keyword, groups);
+			}
+		}
+		
+		return concepts ;
+
+    }
 	// consider the keyword as concept if the return search has class type 
 	public static boolean  isConcept(String keyword) 
     {
@@ -108,6 +152,8 @@ public class bioportal{
 		String prefLabel="";
 		JsonNode annotations;
 		annotations = jsonToNode(get(REST_URL + "/search?q=" +  keyword + "&require_exact_match=true"));
+		if (annotations == null )
+			return false ;
 		List<JsonNode>	 classes= (List<JsonNode>) annotations.get("collection").findValues("@type");
 		if( classes.isEmpty() )
 		{
@@ -115,6 +161,186 @@ public class bioportal{
 		}
 		return true;	
     }
+	
+	
+	// consider the keyword as concept if the return search has class type 
+		public static boolean  isConceptWithspecficSG(String keyword) 
+	    {
+			if (keyword.length() <= 1 || StringUtils.isNumeric(keyword) )
+				return false ; 
+			
+			 keyword  =  keyword.replace(" ", "%20");
+			String prefLabel="";
+			JsonNode annotations;
+			annotations = jsonToNode(get(REST_URL + "/search?q=" +  keyword + "&require_exact_match=true"));
+			if (annotations == null )
+				return false ;
+			List<JsonNode>	 classes= (List<JsonNode>) annotations.get("collection").findValues("@type");
+			if( classes.isEmpty() )
+			{
+				return false ;
+			}
+			
+			Map<String, Integer> semGp = getSemanticGroup(keyword);
+			String groups = "" ; 
+
+            boolean flg = false ; 
+			for(String gr:semGp.keySet())
+			{
+				
+				if (gr.equals("Anatomy"))
+				{
+					flg = true ; 
+					Anatomy++ ;
+				}
+					 
+				else if (gr.equals("Chemicals & Drugs"))
+				{
+					flg = true ; 
+				   ChemicalsDrugs++;
+				}
+				else if (gr.equals("Disorders"))
+				{
+					flg = true ; 
+					Disorders++;	
+				}
+				else if (gr.equals("Devices"))
+				{
+					flg = true ; 
+					Devices++;
+				}
+				else if (gr.equals("Physiology"))
+				{
+					flg = true ; 
+					Physiology++;
+				}
+				/*else if (gr.equals("Living Beings"))
+					LivingBeing++;
+				else if (gr.equals("Objects"))
+					Objects++;
+				else if (gr.equals("Organizations"))
+					Organizations++;*/
+				else if (gr.equals("Activities & Behaviors"))
+				{
+					flg = true ; 
+					ActivitiesBehaviors++;
+				}
+			/*	else if (gr.equals("Concepts & Ideas"))
+					ConceptsIdeas++;
+				else if (gr.equals("Occupations"))
+					Occupations++;
+				else if (gr.equals("Genes & Molecular Sequences"))
+					GenesMolecularSequences++;
+				else if (gr.equals("Geographic Areas"))
+					GeographicAreas++;*/
+				/*else if (gr.equals("Phenomena"))
+					Phenomena++;
+				else if (gr.equals("Procedures"))
+					Procedures++;*/
+
+
+				 
+				 
+			}
+			
+			if ( flg)
+			{
+				return true ;
+			}
+			
+			return false;	
+	    }
+		
+		// consider the keyword as concept if the return search has class type 
+		public static boolean  printSG(String keyword) throws IOException 
+	    {
+			if (keyword.length() <= 1 || StringUtils.isNumeric(keyword) )
+				return false ; 
+			
+			 keyword  =  keyword.replace(" ", "%20");
+			String prefLabel="";
+			JsonNode annotations;
+			annotations = jsonToNode(get(REST_URL + "/search?q=" +  keyword + "&require_exact_match=true"));
+			if (annotations == null )
+				return false ;
+			List<JsonNode>	 classes= (List<JsonNode>) annotations.get("collection").findValues("@type");
+			if( classes.isEmpty() )
+			{
+				return false ;
+			}
+			
+			Map<String, Integer> semGp = getSemanticGroup(keyword);
+			String groups = "" ; 
+
+			String filename = "C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\ClinicalNote\\notIdentified2.txt" ;
+			boolean flg = false ; 
+			for(String gr:semGp.keySet())
+			{
+				
+				if (gr.equals("Anatomy"))
+				{
+					flg = true ; 
+					readfiles.Writestringtofile(keyword + " -> Anatomy", filename);
+				}
+				if (gr.equals("Chemicals & Drugs"))
+				{
+					flg = true ; 
+					readfiles.Writestringtofile(keyword + " -> Chemicals & Drugs", filename);
+				}
+				if (gr.equals("Disorders"))
+				{
+					flg = true ; 
+					
+					readfiles.Writestringtofile(keyword + " -> Disorders", filename);
+				}
+				if (gr.equals("Devices"))
+				{
+					flg = true ; 
+					readfiles.Writestringtofile(keyword + " -> Devices", filename);
+				}
+				if (gr.equals("Physiology"))
+				{
+					flg = true ; 
+					readfiles.Writestringtofile(keyword + " -> Physiology", filename);
+				}
+				/*else if (gr.equals("Living Beings"))
+					readfiles.Writestringtofile(keyword + " ->Living Beings", filename);
+				else if (gr.equals("Objects"))
+					readfiles.Writestringtofile(keyword + " -> Objects", filename);
+				else if (gr.equals("Organizations"))
+					readfiles.Writestringtofile(keyword + " -> Organizations", filename);
+				else if (gr.equals("Activities & Behaviors"))
+					readfiles.Writestringtofile(keyword + " -> Activities & Behaviors", filename);
+				else if (gr.equals("Concepts & Ideas"))
+					readfiles.Writestringtofile(keyword + " ->Concepts & Ideas", filename);
+				else if (gr.equals("Occupations"))
+					readfiles.Writestringtofile(keyword + " -> Occupations", filename);
+				else if (gr.equals("Genes & Molecular Sequences"))
+					readfiles.Writestringtofile(keyword + " -> Genes & Molecular Sequences", filename);
+				else if (gr.equals("Geographic Areas"))
+					readfiles.Writestringtofile(keyword + " -> Geographic Areas", filename);*/
+				if (gr.equals("Phenomena"))
+				{
+					flg = true ; 
+					readfiles.Writestringtofile(keyword + " -> Phenomena", filename);
+				}
+				if (gr.equals("Procedures"))	
+				{
+					flg = true ; 
+				
+					readfiles.Writestringtofile(keyword + " -> Procedures", filename);
+				}
+				 
+			}
+			
+			if (flg) 
+			{
+				return true ; 
+			}
+			
+			return false;	
+	    }
+	
 	
 	public static String  getConceptID(String keyword) 
     {
@@ -195,26 +421,43 @@ public class bioportal{
 		return Definitions;	
     }
 	
-	//get the Synonyms for the keyword
+
 	public static Map<String, Integer>  getSemanticTypes(String keyword) 
     {
 		Map<String, Integer> SemanticTypes   = new HashMap<String, Integer>();
 		 keyword  =  keyword.replace(" ", "%20");
 		JsonNode annotations;
 		annotations = jsonToNode(get(REST_URL + "/search?q=" +  keyword + "&require_exact_match=true"));
-		List<JsonNode>	 semanticTypes = (List<JsonNode>) annotations.get("collection").findValues("semanticType");
-		for(JsonNode st: semanticTypes)
-		{ 
-	          for (Iterator<JsonNode> iterator = st.elements(); iterator.hasNext(); ) 
-	          {
-	                String excludedPropertyName = iterator.next().asText();
-	                SemanticTypes.put(excludedPropertyName, 1) ;
-	          }
-				
+		if(annotations != null)
+		{
+			List<JsonNode>	 semanticTypes = (List<JsonNode>) annotations.get("collection").findValues("semanticType");
+			for(JsonNode st: semanticTypes)
+			{ 
+		          for (Iterator<JsonNode> iterator = st.elements(); iterator.hasNext(); ) 
+		          {
+		                String excludedPropertyName = iterator.next().asText();
+		                SemanticTypes.put(excludedPropertyName, 1) ;
+		          }
+					
+			}
 		}
 		return SemanticTypes;	
     }
 	
+	
+	public static String  getSemanticTypeNames(String semTypeID) 
+    {
+		String semTypeName = "" ;
+		
+		
+		{
+			Map<String, String> semantictype = ReadXMLFile.Deserializeddiectionar("C:\\Users\\mazina\\Desktop\\School\\Khalid\\Paper\\Distance Supervision NER\\Data Medline_PubMed\\SemanticTypeDir.dat") ;
+			
+			semTypeName  = semantictype.get(semTypeID) ;
+		}
+		
+		return semTypeName ;	
+    }
 	//get the Synonyms for the keyword
 	public static Map<String, Integer>  getSemanticGroup(String keyword) 
     {

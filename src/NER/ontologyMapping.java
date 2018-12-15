@@ -116,7 +116,38 @@ public class ontologyMapping {
 		return concepts ; 
 	}
 	
-	
+	public static Map<String, Integer> getAnnotation(Map<String, Integer> keywords, List<String>  listSG) throws IOException
+	{
+
+		Map<String, Integer> concepts = new HashMap<String, Integer>();
+		String group = null ; 
+		for(String keyword: keywords.keySet())
+		{
+			if (getKeywordAnnotation(keyword) )
+			{
+				if ( (group= getSemanticGroup(keyword,listSG)) != null  )
+				{
+					concepts.put(keyword, 1) ;
+				}
+			}
+/*			else if (getKeywordSynAnnotation(keyword))
+			{
+				if (ontologyMapping.getSemanticGroupTypeDISO_CHEM(keyword) )
+				{
+					concepts.put(keyword, 1) ;
+				}
+			}
+			else if (getKeywordAnsAnnotation(keyword))
+			{
+				if (ontologyMapping.getSemanticGroupTypeDISO_CHEM(keyword) )
+				{
+					concepts.put(keyword, 1) ;
+				}
+			}*/
+			
+		}
+		return concepts ; 
+	}
 	
 	public static Map<String, String> getAnnotation(Map<String, Integer> keywords, JList SGT) throws IOException
 	{
@@ -643,7 +674,205 @@ public class ontologyMapping {
 		return null;
 		
 	}
-	
+	public static String getSemanticGroup(String mention, List<String>  listSG)
+	{
+	    int flag = 0 ; 	
+	    String group = "" ;
+	    Boolean first = true ; 
+        for(Object type:listSG)
+        {
+        	
+        	if(type.toString().equals("Activities & Behaviors"))
+        	{
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:ACTI}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:ACTI}" ;
+        		first = false ; 
+        	}
+        	if(type.toString().equals("Anatomy"))
+        	{
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:ANAT}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:ANAT}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Chemicals & Drugs"))
+        	{
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:CHEM}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:CHEM}" ;
+        		first = false ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Concepts & Ideas"))
+        	{
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:CONC}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:CONC}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Devices"))
+        	{
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:DEVI}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:DEVI}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Disorders"))
+        	{
+
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:DISO}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:DISO}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Genes & Molecular Sequences"))
+        	{
+
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:GENE}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:GENE}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Geographic Areas"))
+        	{
+
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:GEOG}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:GEOG}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Living Beings"))
+        	{
+
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:LIVB}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:LIVB}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Objects"))
+        	{
+
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:OBJC}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:OBJC}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Occupations"))
+        	{
+
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:OCCU}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:OCCU}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Organizations"))
+        	{
+
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:ORGA}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:ORGA}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Phenomena"))
+        	{
+
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:PHEN}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:PHEN}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Physiology"))
+        	{
+
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:PHYS}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:PHYS}" ;
+        		first = false ;
+        	}
+        	if(type.toString().equals("Procedures"))
+        	{
+
+        		if (first)
+        			group += "{ ?st calbc:inGroup calbc-group:PROC}" ;
+        		else
+        			group += "UNION  { ?st calbc:inGroup calbc-group:PROC}" ;
+        		first = false ;
+        	}
+        	
+        }
+        String queryString ; 
+        {
+			queryString=
+					"PREFIX p: <http://dbpedia.org/property/>"+
+					"PREFIX dbpedia: <http://dbpedia.org/resource/>"+
+					"PREFIX category: <http://dbpedia.org/resource/Category:>"+
+					"PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"+
+					"PREFIX skos: <http://www.w3.org/2004/02/skos/core#>"+
+					"PREFIX geo: <http://www.georss.org/georss/>"+
+					"PREFIX w3: <http://www.w3.org/2002/07/owl#>"+
+					"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>"+
+					"PREFIX calbc: <http://linkedlifedata.com/resource/calbc/>" +
+					"PREFIX calbc-group: <http://linkedlifedata.com/resource/calbc/group/>" + 
+			        "select ?entity  ?st where" +
+				    "{ " +
+			                  "?entity ?predicate" +  " \"" +   mention +  "\". "   +
+			                 // "?entity rdf:type skos:Concept." + 
+			                  "?entity rdf:type ?st." +
+			                  group +
+			        " } LIMIT 1"  ;
+        }
+       
+        	
+		
+
+		
+		// now creating query object
+		try
+		{
+			Query query = QueryFactory.create(queryString);
+			QueryExecution qexec = QueryExecutionFactory.sparqlService("http://linkedlifedata.com/sparql", query);
+			ResultSet results ;
+			qexec.setTimeout(30000);
+			results = qexec.execSelect(); 
+			for (; results.hasNext();) 
+			{
+		
+			    // Result processing is done here.
+		         QuerySolution soln = results.nextSolution() ;
+		         RDFNode   object    = soln.get("st");      // get the object
+		         
+				 return getSemanticGroupTypelabel(object.toString()) ;
+		          
+		    }
+		}
+		catch(QueryParseException e)
+		{
+			e.printStackTrace();
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
+		
+		
+		return null;
+		
+	}
 	public static String getSemanticGroupType(String mention, JList sGTypelist)
 	{
 	    int flag = 0 ; 	
